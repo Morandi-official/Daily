@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="page-shell">
+    <header class="site-header">
+      <p class="eyebrow">Daily</p>
+      <h1>每日图片与评论</h1>
+      <p class="subtitle">点击图片左侧查看前一天，点击图片右侧查看后一天。未到日期不能前进。</p>
+    </header>
+
+    <section class="daily-card" aria-label="每日内容">
+      <div class="date-row">
+        <button id="prevDay" class="ghost-button" type="button" aria-label="前一天">← 前一天</button>
+        <div>
+          <div id="dateLabel" class="date-label">加载中…</div>
+          <div id="dayHint" class="day-hint"></div>
+        </div>
+        <button id="nextDay" class="ghost-button" type="button" aria-label="后一天">后一天 →</button>
+      </div>
+
+      <figure id="imageStage" class="image-stage" tabindex="0" aria-label="图片区域，左半边为前一天，右半边为后一天">
+        <button id="imagePrev" class="image-hit image-hit-left" type="button" aria-label="点击图片左边切换到前一天"></button>
+        <img id="dailyImage" src="/images/placeholder.svg" alt="每日图片占位" />
+        <button id="imageNext" class="image-hit image-hit-right" type="button" aria-label="点击图片右边切换到后一天"></button>
+      </figure>
+      <figcaption id="imageCaption" class="image-caption">这里是图片预留区。以后把图片放到 images 文件夹，并在 data/days.json 里配置即可。</figcaption>
+    </section>
+
+    <section class="comment-card" aria-label="评论区">
+      <div class="comment-head">
+        <h2>评论区</h2>
+        <span id="commentStatus" class="status-text">正在读取评论…</span>
+      </div>
+
+      <form id="commentForm" class="comment-form">
+        <div class="role-picker" role="radiogroup" aria-label="选择发言角色">
+          <label><input type="radio" name="role" value="A" checked /> <span>A</span></label>
+          <label><input type="radio" name="role" value="B" /> <span>B</span></label>
+          <label><input type="radio" name="role" value="C" /> <span>C</span></label>
+        </div>
+        <textarea id="commentInput" maxlength="300" placeholder="选择 A / B / C 后在这里发言，最多 300 字。" required></textarea>
+        <div class="form-actions">
+          <span id="charCount">0 / 300</span>
+          <button class="primary-button" type="submit">发布评论</button>
+        </div>
+      </form>
+
+      <div id="commentsList" class="comments-list"></div>
+    </section>
+  </main>
+
+  <template id="commentTemplate">
+    <article class="comment-item">
+      <div class="comment-meta">
+        <span class="role-badge"></span>
+        <time></time>
+      </div>
+      <p></p>
+    </article>
+  </template>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
