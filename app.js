@@ -3,6 +3,7 @@ const els = {
   dayHint: document.querySelector('#dayHint'),
   prevDay: document.querySelector('#prevDay'),
   nextDay: document.querySelector('#nextDay'),
+  imageStage: document.querySelector('#imageStage'),
   imagePrev: document.querySelector('#imagePrev'),
   imageNext: document.querySelector('#imageNext'),
   dailyImage: document.querySelector('#dailyImage'),
