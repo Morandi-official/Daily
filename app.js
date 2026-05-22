@@ -51,12 +51,23 @@ function isFuture(date) {
   return date.getTime() > today.getTime();
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function loadDaysConfig() {
   try {
-    const response = await fetch('/data/days.json', { cache: 'no-cache' });
+    const response = await fetchWithTimeout('/data/days.json', { cache: 'no-cache' }, 5000);
     if (!response.ok) return;
     daysConfig = await response.json();
-  } catch {
+  } catch (error) {
+    console.warn('每日图片配置读取失败，使用默认占位图：', error);
     daysConfig = {};
   }
 }
@@ -82,11 +93,11 @@ async function fetchComments(dateKey) {
   if (localMode) return readLocalComments(dateKey);
 
   try {
-    const response = await fetch(`/api/comments?date=${encodeURIComponent(dateKey)}`, { cache: 'no-cache' });
+    const response = await fetchWithTimeout(`/api/comments?date=${encodeURIComponent(dateKey)}`, { cache: 'no-cache' }, 8000);
     if (!response.ok) throw new Error(await response.text());
     return await response.json();
   } catch (error) {
-    console.warn('API 不可用，已切换为本地浏览器存储模式：', error);
+    console.warn('评论 API 不可用，已切换为本地浏览器存储模式：', error);
     localMode = true;
     return readLocalComments(dateKey);
   }
@@ -94,22 +105,27 @@ async function fetchComments(dateKey) {
 
 async function postComment(dateKey, role, content) {
   if (localMode) {
-    const saved = saveLocalComment(dateKey, role, content);
-    return saved;
+    return saveLocalComment(dateKey, role, content);
   }
 
-  const response = await fetch('/api/comments', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ date: dateKey, role, content })
-  });
+  try {
+    const response = await fetchWithTimeout('/api/comments', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ date: dateKey, role, content })
+    }, 8000);
 
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || '发布失败');
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || '发布失败');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.warn('云端发布失败，已临时保存到本地浏览器：', error);
+    localMode = true;
+    return saveLocalComment(dateKey, role, content);
   }
-
-  return response.json();
 }
 
 function localStorageKey(dateKey) {
@@ -162,7 +178,7 @@ function renderComments(comments) {
 
 function formatTime(value) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
+  if (Number.isNaN(date.getTime())) return String(value || '');
   return date.toLocaleString('zh-CN', {
     month: '2-digit',
     day: '2-digit',
@@ -177,7 +193,7 @@ async function refresh() {
   els.commentStatus.textContent = '正在读取评论…';
   const comments = await fetchComments(dateKey);
   renderComments(comments);
-  els.commentStatus.textContent = localMode ? '本地模式' : `${comments.length} 条评论`;
+  els.commentStatus.textContent = localMode ? `本地模式：${comments.length} 条评论` : `${comments.length} 条评论`;
 }
 
 async function goToDate(date) {
@@ -186,44 +202,73 @@ async function goToDate(date) {
   await refresh();
 }
 
-els.prevDay.addEventListener('click', () => goToDate(addDays(currentDate, -1)));
-els.imagePrev.addEventListener('click', () => goToDate(addDays(currentDate, -1)));
-els.nextDay.addEventListener('click', () => goToDate(addDays(currentDate, 1)));
-els.imageNext.addEventListener('click', () => goToDate(addDays(currentDate, 1)));
-
-els.imageStage.addEventListener('keydown', (event) => {
-  if (event.key === 'ArrowLeft') goToDate(addDays(currentDate, -1));
-  if (event.key === 'ArrowRight') goToDate(addDays(currentDate, 1));
-});
-
-els.commentInput.addEventListener('input', () => {
-  els.charCount.textContent = `${els.commentInput.value.length} / 300`;
-});
-
-els.commentForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const formData = new FormData(els.commentForm);
-  const role = formData.get('role');
-  const content = els.commentInput.value.trim();
-  const dateKey = formatDate(currentDate);
-  if (!content) return;
-
-  const submit = els.commentForm.querySelector('button[type="submit"]');
-  submit.disabled = true;
-  submit.textContent = '发布中…';
-
-  try {
-    await postComment(dateKey, role, content);
-    els.commentInput.value = '';
-    els.charCount.textContent = '0 / 300';
-    await refresh();
-  } catch (error) {
-    alert(error.message || '发布失败');
-  } finally {
-    submit.disabled = false;
-    submit.textContent = '发布评论';
+function requireElements() {
+  const missing = Object.entries(els).filter(([, value]) => !value).map(([key]) => key);
+  if (missing.length) {
+    throw new Error(`页面元素缺失：${missing.join(', ')}`);
   }
-});
+}
 
-await loadDaysConfig();
-await refresh();
+function bindEvents() {
+  els.prevDay.addEventListener('click', () => goToDate(addDays(currentDate, -1)));
+  els.imagePrev.addEventListener('click', () => goToDate(addDays(currentDate, -1)));
+  els.nextDay.addEventListener('click', () => goToDate(addDays(currentDate, 1)));
+  els.imageNext.addEventListener('click', () => goToDate(addDays(currentDate, 1)));
+
+  els.imageStage.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') goToDate(addDays(currentDate, -1));
+    if (event.key === 'ArrowRight') goToDate(addDays(currentDate, 1));
+  });
+
+  els.commentInput.addEventListener('input', () => {
+    els.charCount.textContent = `${els.commentInput.value.length} / 300`;
+  });
+
+  els.commentForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formData = new FormData(els.commentForm);
+    const role = formData.get('role');
+    const content = els.commentInput.value.trim();
+    const dateKey = formatDate(currentDate);
+    if (!content) return;
+
+    const submit = els.commentForm.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    submit.textContent = '发布中…';
+
+    try {
+      const newComment = await postComment(dateKey, role, content);
+      els.commentInput.value = '';
+      els.charCount.textContent = '0 / 300';
+
+      if (localMode) {
+        const localComments = readLocalComments(dateKey);
+        renderComments(localComments);
+        els.commentStatus.textContent = `本地模式：${localComments.length} 条评论`;
+      } else {
+        const currentComments = await fetchComments(dateKey);
+        renderComments(currentComments.length ? currentComments : [newComment]);
+        els.commentStatus.textContent = `${Math.max(currentComments.length, 1)} 条评论`;
+      }
+    } catch (error) {
+      alert(error.message || '发布失败');
+    } finally {
+      submit.disabled = false;
+      submit.textContent = '发布评论';
+    }
+  });
+}
+
+async function init() {
+  requireElements();
+  bindEvents();
+  updateDateUi();
+  await loadDaysConfig();
+  await refresh();
+}
+
+init().catch((error) => {
+  console.error(error);
+  if (els.dateLabel) els.dateLabel.textContent = displayDate(currentDate);
+  if (els.commentStatus) els.commentStatus.textContent = `脚本初始化失败：${error.message}`;
+});
