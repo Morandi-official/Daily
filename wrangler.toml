@@ -1,10 +1,6 @@
-# 可选配置文件：如果你用 Cloudflare Dashboard 手动绑定 D1，可以不改这个文件。
-# 若你希望用 wrangler 配置绑定，请把 database_id 改成你的 D1 database ID。
+# 可选配置文件。
+# 当前项目主要通过 Cloudflare Dashboard 部署和绑定 D1。
+# 为了避免占位 database_id 影响首次部署，这里不写 D1 绑定。
 name = "daily"
 pages_build_output_dir = "."
 compatibility_date = "2026-05-22"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "daily-db"
-database_id = "替换成你的-D1-database-id"
