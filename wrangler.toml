@@ -1,6 +1,0 @@
-# 可选配置文件。
-# 当前项目主要通过 Cloudflare Dashboard 部署和绑定 D1。
-# 为了避免占位 database_id 影响首次部署，这里不写 D1 绑定。
-name = "daily"
-pages_build_output_dir = "."
-compatibility_date = "2026-05-22"
