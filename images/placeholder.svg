@@ -1,0 +1,9 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#EFE6DA"/>
+  <circle cx="330" cy="220" r="140" fill="#F5C9A6" opacity="0.9"/>
+  <path d="M0 725L260 510L510 660L720 450L990 705L1180 560L1600 760V900H0V725Z" fill="#D7BFA7"/>
+  <path d="M0 800L330 570L620 760L830 530L1110 790L1350 640L1600 775V900H0V800Z" fill="#C9A98E"/>
+  <rect x="515" y="255" width="570" height="230" rx="38" fill="white" opacity="0.8"/>
+  <text x="800" y="354" text-anchor="middle" font-family="Arial, 'Microsoft YaHei', sans-serif" font-size="64" font-weight="800" fill="#A35425">Daily Image</text>
+  <text x="800" y="426" text-anchor="middle" font-family="Arial, 'Microsoft YaHei', sans-serif" font-size="32" fill="#706B64">把你的每日图片放在这里</text>
+</svg>
